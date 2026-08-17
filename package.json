@@ -1,0 +1,60 @@
+{
+  "name": "nuxt-early-404",
+  "version": "0.1.0",
+  "description": "Opt-in, manifest-backed early 404 responses for Nuxt production apps.",
+  "keywords": [
+    "404",
+    "early",
+    "nitro",
+    "nuxt",
+    "performance"
+  ],
+  "homepage": "https://github.com/No-Name-Studio-VN/nuxt-early-404#readme",
+  "bugs": {
+    "url": "https://github.com/No-Name-Studio-VN/nuxt-early-404/issues"
+  },
+  "license": "MIT",
+  "author": "No Name Studio",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No-Name-Studio-VN/nuxt-early-404.git"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/module.d.ts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "unbuild && tsc --project tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.4.5",
+    "rou3": "^0.9.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "nuxt": "^4.4.5",
+    "typescript": "^5.9.0",
+    "unbuild": "^3.5.0",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "nuxt": ">=4.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

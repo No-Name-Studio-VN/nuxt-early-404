@@ -1,0 +1,9 @@
+dist
+node_modules
+.nuxt
+.output
+coverage
+*.tgz
+
+# Local deepwork session state
+.slim/deepwork/
