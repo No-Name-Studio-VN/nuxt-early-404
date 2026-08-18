@@ -13,6 +13,14 @@ describe('route manifest generation', () => {
     expect(toRou3PagePattern('/docs/:pathMatch(.*)*')).toBe('/docs/**:pathMatch');
   });
 
+  it('widens params whose constraint can match a slash to a catch-all', () => {
+    // `:id(.*)` matches `/deep/a/b` in vue-router, so a single-segment `:id` would 404 it.
+    expect(toRou3PagePattern('/deep/:id(.*)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id([^-]+)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id(a\\/b)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/reader/:id(\\d\\.\\d)')).toBe('/reader/:id');
+  });
+
   it('collects nested pages beneath canonical paths and aliases', () => {
     expect(
       collectNuxtPageRoutePatterns([

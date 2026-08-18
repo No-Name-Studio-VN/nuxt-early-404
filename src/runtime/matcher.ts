@@ -28,6 +28,19 @@ function withoutBase(path: string, baseURL: string): string {
   return path;
 }
 
+// `decodeURI` leaves `%2F` encoded, so a decoded path never gains segments and can only widen
+// what matches. Returns `undefined` when decoding is unnecessary or the encoding is malformed.
+function decodedPath(path: string): string | undefined {
+  if (!path.includes('%')) return undefined;
+
+  try {
+    const decoded = decodeURI(path);
+    return decoded === path ? undefined : decoded;
+  } catch {
+    return undefined;
+  }
+}
+
 function getPayloadPagePath(path: string): string | undefined {
   for (const suffix of PAYLOAD_SUFFIXES) {
     if (path === suffix) return '/';
@@ -70,7 +83,7 @@ export function createEarly404RouteMatcher(
     ? undefined
     : createRouteRouter(excludedRoutePatterns, false);
 
-  function matches(path: string): boolean {
+  function matchesLiteralPath(path: string): boolean {
     if (path === NUXT_ERROR_ROUTE) return true;
     if (routerMatches(excludedRouter, path)) return true;
     if (foldedExcludedRouter && routerMatches(foldedExcludedRouter, path.toLowerCase()))
@@ -85,6 +98,15 @@ export function createEarly404RouteMatcher(
 
     const payloadPageRoute = pageCaseSensitive ? payloadPagePath : payloadPagePath.toLowerCase();
     return routerMatches(pageRouter, payloadPageRoute);
+  }
+
+  function matches(path: string): boolean {
+    if (matchesLiteralPath(path)) return true;
+
+    // Pages whose path contains non-ASCII or reserved characters are requested percent-encoded,
+    // so retry decoded before concluding that no route can serve the request.
+    const decoded = decodedPath(path);
+    return decoded !== undefined && matchesLiteralPath(decoded);
   }
 
   return {

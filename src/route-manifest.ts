@@ -13,9 +13,17 @@ function getPageAliases(page: Early404PageRoute): string[] {
   return Array.isArray(page.alias) ? page.alias : [page.alias];
 }
 
+// A constraint spans path segments when it can match a slash: `.` matches one, as does an
+// explicit `/` or a negated class such as `[^-]`. Escape sequences other than `\/` cannot.
+function spansPathSegments(constraint: string): boolean {
+  return /[./]|\[\^/.test(constraint.replace(/\\[^/]/g, ''));
+}
+
 export function toRou3PagePattern(pagePath: string): string {
   return pagePath
-    .replace(/\([^)]*\)/g, '')
+    .replace(/:(\w+)\(([^)]*)\)/g, (_match, name: string, constraint: string) =>
+      spansPathSegments(constraint) ? `:${name}*` : `:${name}`,
+    )
     .replace(/:(\w+)\*.*/g, (_match, name: string) => `**:${name}`)
     .replace(/:([^/*]*)/g, (_match, name: string) => `:${name.replace(/[^\w?]/g, '_')}`);
 }
