@@ -18,7 +18,21 @@ describe('route manifest generation', () => {
     expect(toRou3PagePattern('/deep/:id(.*)')).toBe('/deep/**:id');
     expect(toRou3PagePattern('/deep/:id([^-]+)')).toBe('/deep/**:id');
     expect(toRou3PagePattern('/deep/:id(a\\/b)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id(\\D)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id(\\W)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id(\\S+)')).toBe('/deep/**:id');
+    expect(toRou3PagePattern('/deep/:id(\\d/\\d)')).toBe('/deep/**:id');
+  });
+
+  it('keeps params to a single segment when their constraint cannot match a slash', () => {
     expect(toRou3PagePattern('/reader/:id(\\d\\.\\d)')).toBe('/reader/:id');
+    expect(toRou3PagePattern('/reader/:id([.])')).toBe('/reader/:id');
+    expect(toRou3PagePattern('/reader/:id(\\p{L}+)')).toBe('/reader/:id');
+    expect(toRou3PagePattern('/reader/:id([a-z-]+)')).toBe('/reader/:id');
+  });
+
+  it('widens params whose constraint cannot be compiled', () => {
+    expect(toRou3PagePattern('/deep/:id([)')).toBe('/deep/**:id');
   });
 
   it('collects nested pages beneath canonical paths and aliases', () => {
