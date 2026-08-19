@@ -36,6 +36,17 @@ describe('fast 404 route matcher', () => {
     );
   });
 
+  it('matches percent-encoded requests for pages with non-ASCII paths', () => {
+    const unicodeMatcher = createEarly404RouteMatcher(['/tin-tức'], [], false, []);
+
+    expect(unicodeMatcher.matches('/tin-t%E1%BB%A9c')).toBe(true);
+    expect(unicodeMatcher.matches('/tin-t%E1%BB%A9c/extra')).toBe(false);
+  });
+
+  it('ignores malformed percent-encoding rather than throwing', () => {
+    expect(matcher.matches('/%E0%A4%A')).toBe(false);
+  });
+
   it('fails open if Nuxt did not expose any page routes', () => {
     expect(createEarly404RouteMatcher([], ['/api/story/:id'], false, []).ready).toBe(false);
   });

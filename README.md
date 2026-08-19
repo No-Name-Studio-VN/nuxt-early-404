@@ -8,6 +8,15 @@ It is useful when broad scanner traffic or bad links make unknown paths expensiv
 block a request before the deployment platform invokes your serverless function or Worker; use
 your CDN, WAF, or rate limiting for that layer.
 
+## Upstream
+
+Nuxt is adopting this idea as a built-in `experimental.early404` flag in
+[nuxt/nuxt#36117](https://github.com/nuxt/nuxt/pull/36117). The built-in version compiles the page
+patterns at build time and checks them inside the Nuxt renderer, which is a better place for it:
+Nitro has already matched server routes and public assets by then, so they cannot be caught by
+mistake. Prefer the framework flag once it ships on a Nuxt version you can run. This module remains
+useful for Nuxt 4 and where the `exclude` escape hatch is needed.
+
 ## Installation
 
 ```bash
@@ -37,8 +46,12 @@ export default defineNuxtConfig({
 
 At build time, the module collects Nuxt pages, aliases, and non-middleware Nitro handlers. Its
 prepended `00-fast-404` middleware lets known paths through and responds immediately to the rest.
-It handles Nuxt payload URLs, application base URLs, trailing slashes, and Nuxt's default
-case-insensitive page routing.
+It handles Nuxt payload URLs, application base URLs, trailing slashes, percent-encoded paths, and
+Nuxt's default case-insensitive page routing.
+
+Matching is deliberately looser than `vue-router`'s: a miss proves no page can render, while a hit
+only means the request continues into Nuxt, which still answers 404 for anything it cannot serve.
+Every conversion therefore errs towards matching more paths than `vue-router` would.
 
 The module is deliberately conservative in a few cases:
 
@@ -47,6 +60,11 @@ The module is deliberately conservative in a few cases:
   the optimization.
 - Runtime-added Vue routes and server middleware that intentionally handles arbitrary paths are not
   discoverable at build time. Add those path patterns to `exclude`.
+- Routes added or replaced by a `routes()` function in `app/router.options.ts` are applied when the
+  router is created, so they are invisible to the build-time manifest. Add those path patterns to
+  `exclude`.
+- `router.options.hashMode` keeps the route in the URL fragment, which never reaches the server. The
+  module disables itself and warns when it is enabled.
 - A short-circuited response bypasses custom `error.vue`, Nuxt plugins, and later server middleware.
   Enable the module only when that behavior is appropriate for unmatched traffic.
 

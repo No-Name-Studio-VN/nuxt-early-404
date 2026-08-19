@@ -4,6 +4,7 @@ import {
   addTypeTemplate,
   createResolver,
   defineNuxtModule,
+  useLogger,
 } from '@nuxt/kit';
 import './types/nuxt-hooks';
 import {
@@ -72,6 +73,15 @@ export default defineNuxtModule<Early404ModuleOptions>({
     if (!options.enabled) return;
 
     validateCacheMaxAge(options.cacheMaxAge);
+
+    // Hash mode keeps the route in the fragment, which never reaches the server, so no request
+    // path can be checked against the page manifest without rejecting valid entry points.
+    if (nuxt.options.router.options.hashMode) {
+      useLogger('nuxt-early-404').warn(
+        'Disabled because `router.options.hashMode` is enabled: page routes are not visible to the server.',
+      );
+      return;
+    }
 
     const resolver = createResolver(import.meta.url);
     const early404RuntimeDir = resolver.resolve('./runtime/server');

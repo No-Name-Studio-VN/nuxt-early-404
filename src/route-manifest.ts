@@ -13,9 +13,31 @@ function getPageAliases(page: Early404PageRoute): string[] {
   return Array.isArray(page.alias) ? page.alias : [page.alias];
 }
 
+const SLASH_PROBES = ['/', 'a/b', '/a', 'a/'];
+
+// A constraint spans path segments when it can match a slash. Probing the compiled regex is more
+// reliable than reading its source: `\D`, `\W`, `\S` and `[^-]` all match one, while `\.`, `[.]`
+// and `\p{L}` do not. `vue-router` compiles constraints without the unicode flag, so this does
+// too. Constraints that cannot be compiled widen, which is the safe direction.
+function spansPathSegments(constraint: string): boolean {
+  if (!constraint) return false;
+  if (constraint.includes('/')) return true;
+
+  let anchored: RegExp;
+  try {
+    anchored = new RegExp(`^(?:${constraint})$`);
+  } catch {
+    return true;
+  }
+
+  return SLASH_PROBES.some((probe) => anchored.test(probe));
+}
+
 export function toRou3PagePattern(pagePath: string): string {
   return pagePath
-    .replace(/\([^)]*\)/g, '')
+    .replace(/:(\w+)\(([^)]*)\)/g, (_match, name: string, constraint: string) =>
+      spansPathSegments(constraint) ? `:${name}*` : `:${name}`,
+    )
     .replace(/:(\w+)\*.*/g, (_match, name: string) => `**:${name}`)
     .replace(/:([^/*]*)/g, (_match, name: string) => `:${name.replace(/[^\w?]/g, '_')}`);
 }

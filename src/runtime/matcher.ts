@@ -3,6 +3,7 @@ import type { RouterContext } from 'rou3';
 
 const PAYLOAD_SUFFIXES = ['/_payload.json', '/_payload.js'];
 const NUXT_ERROR_ROUTE = '/__nuxt_error';
+const MALFORMED_ESCAPE_RE = /%(?![0-9A-Fa-f]{2})/;
 
 export interface Early404RouteMatcher {
   ready: boolean;
@@ -26,6 +27,25 @@ function withoutBase(path: string, baseURL: string): string {
   if (path === base || path === `${base}/`) return '/';
   if (path.startsWith(`${base}/`)) return path.slice(base.length);
   return path;
+}
+
+// `decodeURI` leaves reserved characters such as `%2F` and `%40` encoded, so a decoded path never
+// gains segments and can only widen what matches. Returns `undefined` when decoding is unnecessary
+// or the encoding cannot be decoded.
+function decodedPath(path: string): string | undefined {
+  if (!path.includes('%')) return undefined;
+  // Scanner traffic carries plenty of stray `%`, and this runs before the request reaches Nuxt, so
+  // reject malformed escapes with a test rather than by throwing out of `decodeURI`.
+  if (MALFORMED_ESCAPE_RE.test(path)) return undefined;
+
+  try {
+    // `%40` and friends survive `decodeURI`, so skip the extra lookups when nothing changed
+    const decoded = decodeURI(path);
+    return decoded === path ? undefined : decoded;
+  } catch {
+    // well-formed escapes can still be invalid UTF-8
+    return undefined;
+  }
 }
 
 function getPayloadPagePath(path: string): string | undefined {
@@ -70,7 +90,7 @@ export function createEarly404RouteMatcher(
     ? undefined
     : createRouteRouter(excludedRoutePatterns, false);
 
-  function matches(path: string): boolean {
+  function matchesLiteralPath(path: string): boolean {
     if (path === NUXT_ERROR_ROUTE) return true;
     if (routerMatches(excludedRouter, path)) return true;
     if (foldedExcludedRouter && routerMatches(foldedExcludedRouter, path.toLowerCase()))
@@ -85,6 +105,15 @@ export function createEarly404RouteMatcher(
 
     const payloadPageRoute = pageCaseSensitive ? payloadPagePath : payloadPagePath.toLowerCase();
     return routerMatches(pageRouter, payloadPageRoute);
+  }
+
+  function matches(path: string): boolean {
+    if (matchesLiteralPath(path)) return true;
+
+    // Pages whose path contains non-ASCII characters are requested percent-encoded, so retry
+    // decoded before concluding that no route can serve the request.
+    const decoded = decodedPath(path);
+    return decoded !== undefined && matchesLiteralPath(decoded);
   }
 
   return {
