@@ -1,6 +1,6 @@
 {
   "name": "nuxt-early-404",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Opt-in, manifest-backed early 404 responses for Nuxt production apps.",
   "keywords": [
     "404",
